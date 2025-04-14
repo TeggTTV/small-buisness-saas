@@ -40,7 +40,7 @@ export default function Navbar() {
 				<Link href="/" className="hover:text-blue-600">
 					Home
 				</Link>
-					<a
+				<a
 					href="#features"
 					onClick={(e) => handleSmoothScroll(e, 'features')}
 					className="hover:text-blue-600"
@@ -53,9 +53,7 @@ export default function Navbar() {
 				<Link href="/contact" className="hover:text-blue-600">
 					Contact
 				</Link>
-				<Link href="/privacy" className="hover:text-blue-600">
-					Privacy Policy
-				</Link>
+
 				<div className="relative" ref={menuRef}>
 					<button
 						onClick={() => setMenuOpen(!menuOpen)}
@@ -83,30 +81,36 @@ export default function Navbar() {
 					</button>
 					{menuOpen && (
 						<div className="absolute right-0 mt-2 w-48 bg-white shadow rounded p-2 space-y-1 z-10">
-							<a
+							<Link
 								href="/profile"
 								className="block hover:bg-gray-100 px-2 py-1"
 							>
 								Profile
-							</a>
-							<a
+							</Link>
+							<Link
 								href="/dashboard"
 								className="block hover:bg-gray-100 px-2 py-1"
 							>
 								Dashboard
-							</a>
-							<a
+							</Link>
+							<Link
 								href="/settings"
 								className="block hover:bg-gray-100 px-2 py-1"
 							>
 								Settings
-							</a>
-							<a
+							</Link>
+							<Link
+								href="/privacy"
+								className="block hover:bg-gray-100 px-2 py-1"
+							>
+								Privacy Policy
+							</Link>
+							<Link
 								href="/help"
 								className="block hover:bg-gray-100 px-2 py-1"
 							>
 								Help
-							</a>
+							</Link>
 							<button className="block w-full text-left hover:bg-gray-100 px-2 py-1">
 								Sign Out
 							</button>
