@@ -9,6 +9,8 @@ import {
 	HelpCircle,
 	LogOut,
 	ChevronDown,
+	Check,
+	RefreshCcw,
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -20,6 +22,7 @@ import {
 	Title,
 	Tooltip,
 	Legend,
+	Filler,
 } from 'chart.js';
 
 ChartJS.register(
@@ -29,7 +32,8 @@ ChartJS.register(
 	LineElement,
 	Title,
 	Tooltip,
-	Legend
+	Legend,
+	Filler
 );
 
 export default function Dashboard() {
@@ -196,7 +200,6 @@ export default function Dashboard() {
 	};
 
 	// Sidebar styling to stretch to the bottom
-	const sidebarStyle = 'w-64 bg-white shadow-lg flex flex-col';
 	const [navbarHeight, setNavbarHeight] = useState(0);
 	const navbarRef = useRef<HTMLDivElement>(null);
 
@@ -212,7 +215,6 @@ export default function Dashboard() {
 			setClients([...clients, { id: clients.length + 1, ...newClient }]);
 			setNewClient({ name: '', email: '', phone: '' });
 		} else {
-
 		}
 	};
 
@@ -234,21 +236,29 @@ export default function Dashboard() {
 	};
 
 	// Handle editing an invoice (placeholder functionality)
-	const handleEditInvoice = (id: number): void => {
-
-	};
+	const handleEditInvoice = (id: number): void => {};
 
 	const [showStats, setShowStats] = useState(true);
 	const [selectedView, setSelectedView] = useState('Monthly'); // Updated for Monthly/Daily/Weekly toggle
 	const [filterPopupOpen, setFilterPopupOpen] = useState(false);
-	const [filterCustomer, setFilterCustomer] = useState('');
-	const [filterDate, setFilterDate] = useState('');
+	const [selectedFilters, setSelectedFilters] = useState({
+		client: '',
+		date: '',
+	});
+
+	const handleFilterChange = (field: string, value: string) => {
+		setSelectedFilters((prev) => ({ ...prev, [field]: value }));
+	};
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState('Number');
 	const [itemsPerPage, setItemsPerPage] = useState(10);
 	const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
 	const filterRef = useRef<HTMLDivElement>(null);
+
+	const toggleFilterPopup = () => {
+		setFilterPopupOpen((prev) => !prev);
+	};
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -265,43 +275,32 @@ export default function Dashboard() {
 		};
 	}, []);
 
-	useEffect(() => {
-		window.history.replaceState(null, '', `?section=${selectedSection}`);
-	}, [selectedSection]);
-
-	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		const section = params.get('section');
-		if (section) setSelectedSection(section);
-	}, []);
-
-	const handleCreateInvoice = () => {
-	};
+	const handleCreateInvoice = () => {};
 
 	const handleRefresh = () => {
 		setLastUpdated(new Date());
 	};
 
-	const timeSinceLastUpdate = () => {
-		const now = new Date();
-		const diffInSeconds = Math.floor(
-			(now.getTime() - lastUpdated.getTime()) / 1000
+	const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
+
+	const toggleCustomerSelection = (customer: string) => {
+		setSelectedCustomers((prev) =>
+			prev.includes(customer)
+				? prev.filter((c) => c !== customer)
+				: [...prev, customer]
 		);
-		if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-		const diffInMinutes = Math.floor(diffInSeconds / 60);
-		return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
 	};
 
 	const filteredInvoices = invoices
 		.filter((invoice) =>
-			filterCustomer
-				? invoice.client
-						.toLowerCase()
-						.includes(filterCustomer.toLowerCase())
+			selectedCustomers.length > 0
+				? selectedCustomers.includes(invoice.client)
 				: true
 		)
 		.filter((invoice) =>
-			filterDate ? invoice.dueDate.includes(filterDate) : true
+			selectedFilters.date
+				? invoice.dueDate.includes(selectedFilters.date)
+				: true
 		)
 		.filter((invoice) =>
 			searchQuery
@@ -338,12 +337,13 @@ export default function Dashboard() {
 			<div className="flex h-full bg-gray-50">
 				{/* Sidebar */}
 				<aside
-					className={sidebarStyle}
+					className="w-64 bg-white shadow-lg flex flex-col"
 					style={{ height: `calc(100vh - ${navbarHeight}px)` }}
 				>
 					<div className="p-3"></div>
 					<nav className="px-6">
 						<ul className="space-y-4">
+							{/* Dashboard */}
 							<li>
 								<a
 									href="#"
@@ -360,6 +360,8 @@ export default function Dashboard() {
 									Dashboard
 								</a>
 							</li>
+
+							{/* Sales & Payments */}
 							<li>
 								<div
 									className="flex items-center justify-between cursor-pointer text-gray-700 hover:text-[#3b82f6]"
@@ -418,24 +420,32 @@ export default function Dashboard() {
 									</ul>
 								)}
 							</li>
+
+							{/* Business Management */}
 							<li>
 								<div
 									className="flex items-center justify-between cursor-pointer text-gray-700 hover:text-[#3b82f6]"
-									onClick={() => toggleSection('clients')}
+									onClick={() =>
+										toggleSection('business-management')
+									}
 								>
 									<div className="flex items-center gap-4">
 										<Users className="w-5 h-5" />
-										Clients
+										Business Management
 									</div>
 									<ChevronDown
 										className={`w-5 h-5 transition-transform ${
-											expandedSections.includes('clients')
+											expandedSections.includes(
+												'business-management'
+											)
 												? 'rotate-180'
 												: ''
 										}`}
 									/>
 								</div>
-								{expandedSections.includes('clients') && (
+								{expandedSections.includes(
+									'business-management'
+								) && (
 									<ul className="pl-8 mt-2 space-y-2">
 										<li>
 											<a
@@ -452,31 +462,152 @@ export default function Dashboard() {
 													)
 												}
 											>
-												Client List
+												Clients
+											</a>
+										</li>
+										<li>
+											<a
+												href="#"
+												className={`hover:text-[#3b82f6] ${
+													selectedSection ===
+													'expense-tracking'
+														? 'font-bold text-[#3b82f6]'
+														: 'text-gray-600'
+												}`}
+												onClick={() =>
+													setSelectedSection(
+														'expense-tracking'
+													)
+												}
+											>
+												Expense Tracking
+											</a>
+										</li>
+										<li>
+											<a
+												href="#"
+												className={`hover:text-[#3b82f6] ${
+													selectedSection ===
+													'task-manager'
+														? 'font-bold text-[#3b82f6]'
+														: 'text-gray-600'
+												}`}
+												onClick={() =>
+													setSelectedSection(
+														'task-manager'
+													)
+												}
+											>
+												Task Manager
 											</a>
 										</li>
 									</ul>
 								)}
 							</li>
+
+							{/* Advanced Features */}
 							<li>
-								<a
-									href="#"
-									className="flex items-center gap-4 text-gray-700 hover:text-[#3b82f6]"
+								<div
+									className="flex items-center justify-between cursor-pointer text-gray-700 hover:text-[#3b82f6]"
+									onClick={() =>
+										toggleSection('advanced-features')
+									}
 								>
-									<Settings className="w-5 h-5" />
-									Settings
-								</a>
+									<div className="flex items-center gap-4">
+										<Settings className="w-5 h-5" />
+										Advanced Features
+									</div>
+									<ChevronDown
+										className={`w-5 h-5 transition-transform ${
+											expandedSections.includes(
+												'advanced-features'
+											)
+												? 'rotate-180'
+												: ''
+										}`}
+									/>
+								</div>
+								{expandedSections.includes(
+									'advanced-features'
+								) && (
+									<ul className="pl-8 mt-2 space-y-2">
+										<li>
+											<a
+												href="#"
+												className={`hover:text-[#3b82f6] ${
+													selectedSection ===
+													'role-management'
+														? 'font-bold text-[#3b82f6]'
+														: 'text-gray-600'
+												}`}
+												onClick={() =>
+													setSelectedSection(
+														'role-management'
+													)
+												}
+											>
+												Role Management
+											</a>
+										</li>
+										<li>
+											<a
+												href="#"
+												className={`hover:text-[#3b82f6] ${
+													selectedSection ===
+													'recurring-billing'
+														? 'font-bold text-[#3b82f6]'
+														: 'text-gray-600'
+												}`}
+												onClick={() =>
+													setSelectedSection(
+														'recurring-billing'
+													)
+												}
+											>
+												Recurring Billing
+											</a>
+										</li>
+										<li>
+											<a
+												href="#"
+												className={`hover:text-[#3b82f6] ${
+													selectedSection ===
+													'document-uploads'
+														? 'font-bold text-[#3b82f6]'
+														: 'text-gray-600'
+												}`}
+												onClick={() =>
+													setSelectedSection(
+														'document-uploads'
+													)
+												}
+											>
+												Document Uploads
+											</a>
+										</li>
+									</ul>
+								)}
 							</li>
+
+							{/* Notifications */}
 							<li>
 								<a
 									href="#"
-									className="flex items-center gap-4 text-gray-700 hover:text-[#3b82f6]"
-									onClick={() => {}}
+									className={`flex items-center gap-4 hover:text-[#3b82f6] ${
+										selectedSection === 'notifications'
+											? 'font-bold text-[#3b82f6]'
+											: 'text-gray-700'
+									}`}
+									onClick={() =>
+										setSelectedSection('notifications')
+									}
 								>
 									<HelpCircle className="w-5 h-5" />
-									Help
+									Notifications
 								</a>
 							</li>
+
+							{/* Logout */}
 							<li>
 								<a
 									href="#"
@@ -515,207 +646,161 @@ export default function Dashboard() {
 					{selectedSection === 'invoices' && (
 						<div className="bg-white shadow rounded-lg p-6">
 							{/* Header */}
-							<div className="flex justify-between items-center mb-4">
-								<h3 className="text-lg font-bold text-gray-700">
+							<div className="flex justify-between items-center mb-6">
+								<h3 className="text-xl font-semibold text-gray-800">
 									Invoices
 								</h3>
-								<div className="flex items-center gap-4">
-									<div className="flex items-center gap-2">
-										<label className="text-sm text-gray-600">
-											Show Stats
-										</label>
-										<input
-											type="checkbox"
-											checked={showStats}
-											onChange={() =>
-												setShowStats(!showStats)
-											}
-											className="toggle-checkbox"
-										/>
-									</div>
-									<select
-										value={selectedView}
-										onChange={(e) =>
-											handleViewChange(e.target.value)
-										}
-										className="border rounded px-2 py-1 text-sm"
-									>
-										<option value="Monthly">Monthly</option>
-										<option value="Weekly">Weekly</option>
-										<option value="Daily">Daily</option>
-									</select>
-									<button
-										onClick={handleCreateInvoice}
-										className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-									>
-										Create an Invoice
-									</button>
-								</div>
+								<button
+									onClick={handleCreateInvoice}
+									className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+								>
+									+ New Invoice
+								</button>
 							</div>
 
-							{/* Stats */}
-							{showStats && (
-								<div className="grid grid-cols-4 gap-4 mb-4 py-4">
-									<div>
-										<h3 className="text-sm text-gray-600">
-											Overdue
-										</h3>
-										<p className="text-3xl font-bold text-red-600">
-											$120.80
-										</p>
-									</div>
-									<div>
-										<h3 className="text-sm text-gray-600">
-											Due within next 30 days
-										</h3>
-										<p className="text-3xl font-bold text-gray-800">
-											$0.00
-										</p>
-									</div>
-									<div>
-										<h3 className="text-sm text-gray-600">
-											Average time to get paid
-										</h3>
-										<p className="text-3xl font-bold text-gray-800">
-											24 days
-										</p>
-									</div>
-									<div>
-										<h3 className="text-sm text-gray-600">
-											Upcoming Payout
-										</h3>
-										<p className="text-3xl font-bold text-gray-800">
-											None
-										</p>
-									</div>
-								</div>
-							)}
-
 							{/* Filters and Search */}
-							<div className="flex justify-between items-center mb-4">
-								<div className="flex items-center gap-2">
+							<div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+								<div className="relative">
 									<button
-										onClick={handleRefresh}
-										className="text-blue-600 hover:underline text-sm"
+										onClick={toggleFilterPopup}
+										className="border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
 									>
-										Last updated {timeSinceLastUpdate()} ↻
+										Filter
 									</button>
-									<div className="relative" ref={filterRef}>
-										<button
-											onClick={() =>
-												setFilterPopupOpen(
-													!filterPopupOpen
-												)
-											}
-											className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 text-sm"
+									{filterPopupOpen && (
+										<div
+											className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-10"
+											ref={filterRef}
 										>
-											Filters
-										</button>
-										{filterPopupOpen && (
-											<div className="absolute top-full mt-2 left-0 bg-white shadow rounded-lg p-4 w-96 z-10">
-												<h3 className="text-lg font-bold text-gray-700 mb-4">
-													Filters
-												</h3>
-												<div className="mb-4">
-													<label className="block text-sm text-gray-600 mb-1">
-														Customer
-													</label>
-													<select
-														value={filterCustomer}
-														onChange={(e) =>
-															setFilterCustomer(
-																e.target.value
-															)
-														}
-														className="border rounded px-2 py-1 text-sm w-full"
-													>
-														<option value="">
-															All Customers
-														</option>
-														{[
-															...new Set(
-																invoices.map(
-																	(invoice) =>
-																		invoice.client
+											<div className="mb-4">
+												<label className="block text-sm font-medium text-gray-700 mb-1">
+													Select Customers
+												</label>
+												<div className="max-h-40 overflow-y-auto border-b border-gray-300 rounded-lg">
+													{clients.map((client) => (
+														<div
+															key={client.id}
+															className={`flex items-center justify-between px-3 py-2 mb-1 rounded-lg cursor-pointer ${
+																selectedCustomers.includes(
+																	client.name
 																)
-															),
-														].map((client) => (
-															<option
-																key={client}
-																value={client}
+																	? 'bg-blue-500 text-white'
+																	: 'bg-white text-gray-700'
+															}`}
+															onClick={() =>
+																toggleCustomerSelection(
+																	client.name
+																)
+															}
+														>
+															<span className="text-sm">
+																{client.name}
+															</span>
+															{/* { && ( */}
+															<span
+																className={`text-white font-bold ${!selectedCustomers.includes(
+																	client.name &&
+																		'hidden'
+																)}`}
 															>
-																{client}
-															</option>
-														))}
-													</select>
-												</div>
-												<div className="mb-4">
-													<label className="block text-sm text-gray-600 mb-1">
-														Date
-													</label>
-													<input
-														type="date"
-														value={filterDate}
-														onChange={(e) =>
-															setFilterDate(
-																e.target.value
-															)
-														}
-														className="border rounded px-2 py-1 text-sm w-full"
-													/>
+																<Check />
+															</span>
+															{/* )} */}
+														</div>
+													))}
 												</div>
 											</div>
-										)}
-									</div>
+											<div className="mb-4">
+												<label className="block text-sm font-medium text-gray-700 mb-1">
+													Date
+												</label>
+												<input
+													type="date"
+													value={selectedFilters.date}
+													onChange={(e) =>
+														handleFilterChange(
+															'date',
+															e.target.value
+														)
+													}
+													className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+												/>
+											</div>
+											<div className="flex justify-end">
+												<button
+													onClick={() =>
+														setFilterPopupOpen(
+															false
+														)
+													}
+													className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+												>
+													Apply
+												</button>
+											</div>
+										</div>
+									)}
 								</div>
-								<input
-									type="text"
-									placeholder="Search by client or number"
-									value={searchQuery}
-									onChange={(e) =>
-										setSearchQuery(e.target.value)
-									}
-									className="border rounded px-4 py-2 text-sm w-64"
-								/>
+								<button
+									onClick={handleRefresh}
+									className="text-blue-600 hover:underline text-sm flex gap-1 justify-between"
+								>
+									Refresh <RefreshCcw className="w-5 h-5" />
+								</button>
 							</div>
 
 							{/* Table */}
 							<div className="overflow-x-auto">
-								<table className="min-w-full table-auto">
+								<table className="min-w-full table-auto border-collapse border border-gray-200 rounded-lg shadow-sm">
 									<thead className="bg-gray-100">
 										<tr>
 											{[
-												'Number',
-												'Status',
+												'Invoice ID',
+												'Client',
+												'Email',
 												'Date',
-												'Customer',
-												'Total',
-												'Amount Due',
+												'Amount',
+												'Status',
 											].map((header) => (
 												<th
 													key={header}
-													className="px-4 py-2 text-left text-sm font-medium text-gray-600 cursor-pointer"
-													onClick={() =>
-														setSortBy(header)
-													}
+													className="px-4 py-3 text-left text-sm font-medium text-gray-600 border border-gray-200"
 												>
 													{header}
 												</th>
 											))}
+											<th className="px-4 py-3 text-left text-sm font-medium text-gray-600 border border-gray-200">
+												Actions
+											</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-gray-200">
 										{displayedInvoices.map((invoice) => (
-											<tr key={invoice.id}>
-												<td className="px-4 py-2 text-sm">
+											<tr
+												key={invoice.id}
+												className="hover:bg-gray-50"
+											>
+												<td className="px-4 py-3 text-sm border border-gray-200">
 													{invoice.number}
 												</td>
-												<td className="px-4 py-2 text-sm">
+												<td className="px-4 py-3 text-sm border border-gray-200">
+													{invoice.client}
+												</td>
+												<td className="px-4 py-3 text-sm border border-gray-200">
+													{invoice.email}
+												</td>
+												<td className="px-4 py-3 text-sm border border-gray-200">
+													{invoice.dueDate}
+												</td>
+												<td className="px-4 py-3 text-sm border border-gray-200">
+													${invoice.amount}
+												</td>
+												<td className="px-4 py-3 text-sm border border-gray-200">
 													<span
-														className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+														className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full ${
 															invoice.status ===
 															'Paid'
-																? 'bg-[#3b82f6] text-white'
+																? 'bg-green-100 text-green-800'
 																: invoice.status ===
 																  'Overdue'
 																? 'bg-red-100 text-red-800'
@@ -725,19 +810,27 @@ export default function Dashboard() {
 														{invoice.status}
 													</span>
 												</td>
-												<td className="px-4 py-2 text-sm">
-													{invoice.dueDate}
-												</td>
-												<td className="px-4 py-2 text-sm">
-													{invoice.client}
-												</td>
-												<td className="px-4 py-2 text-sm">
-													${invoice.amount}
-												</td>
-												<td className="px-4 py-2 text-sm">
-													$
-													{invoice.amount -
-														invoice.cost}
+												<td className="px-4 py-3 text-sm border border-gray-200">
+													<button
+														onClick={() =>
+															handleEditInvoice(
+																invoice.id
+															)
+														}
+														className="text-blue-600 hover:underline text-sm mr-2"
+													>
+														Edit
+													</button>
+													<button
+														onClick={() =>
+															handleDeleteInvoice(
+																invoice.id
+															)
+														}
+														className="text-red-600 hover:underline text-sm"
+													>
+														Delete
+													</button>
 												</td>
 											</tr>
 										))}
@@ -746,7 +839,7 @@ export default function Dashboard() {
 							</div>
 
 							{/* Pagination */}
-							<div className="flex justify-between items-center mt-4">
+							<div className="flex justify-between items-center mt-6">
 								<div className="text-sm text-gray-600">
 									Showing{' '}
 									{Math.min(
@@ -910,6 +1003,100 @@ export default function Dashboard() {
 								</button>
 							</div>
 						</div>
+					)}
+
+					{selectedSection === 'role-management' && (
+						<section aria-labelledby="role-management-section">
+							<h2
+								id="role-management-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Role Management
+							</h2>
+							<p>
+								Feature under development: Add team members,
+								assign permissions, and view history/logs.
+							</p>
+						</section>
+					)}
+
+					{selectedSection === 'recurring-billing' && (
+						<section aria-labelledby="recurring-billing-section">
+							<h2
+								id="recurring-billing-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Recurring Billing
+							</h2>
+							<p>
+								Feature under development: Auto-generate
+								invoices, manage subscriptions, and pause/cancel
+								cycles.
+							</p>
+						</section>
+					)}
+
+					{selectedSection === 'document-uploads' && (
+						<section aria-labelledby="document-uploads-section">
+							<h2
+								id="document-uploads-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Document Uploads
+							</h2>
+							<p>
+								Feature under development: Store receipts,
+								invoices, and contracts with thumbnail previews.
+							</p>
+						</section>
+					)}
+
+					{selectedSection === 'expense-tracking' && (
+						<section aria-labelledby="expense-tracking-section">
+							<h2
+								id="expense-tracking-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Expense Tracking
+							</h2>
+							<p>
+								Feature under development: Track recurring and
+								one-time expenses, assign categories, and export
+								monthly reports.
+							</p>
+						</section>
+					)}
+
+					{selectedSection === 'task-manager' && (
+						<section aria-labelledby="task-manager-section">
+							<h2
+								id="task-manager-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Task Manager
+							</h2>
+							<p>
+								Feature under development: Create tasks with due
+								dates, manage recurring tasks, and archive
+								completed tasks.
+							</p>
+						</section>
+					)}
+
+					{selectedSection === 'notifications' && (
+						<section aria-labelledby="notifications-section">
+							<h2
+								id="notifications-section"
+								className="text-lg font-bold text-gray-700 mb-4"
+							>
+								Notifications & Reminders
+							</h2>
+							<p>
+								Feature under development: Receive reminders for
+								invoice due dates, overdue tasks, and client
+								birthdays.
+							</p>
+						</section>
 					)}
 				</main>
 			</div>
